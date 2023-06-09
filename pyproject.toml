@@ -1,0 +1,16 @@
+[project]
+name = "example_package_Quantum26"
+version = "0.0.1"
+authors = [
+  { name="Ian Song", email="isong12602@gmail.com" },
+]
+description = "Package for Speech Recognition Tests"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
