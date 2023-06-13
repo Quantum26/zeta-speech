@@ -3,19 +3,9 @@ sys.path.insert(1, '../')
 import speech_recognition as sr
 import pyaudio
 from speech_recognition import AudioData
-from chrome.websites import open_site
-from chrome.youtube import YTDriver as youtube
-from tts.tts_funcs import tts
-from other_apps.discord import open_discord
+import matplotlib.pyplot as plt
 import keyboard
 from threading import Thread
-
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 44100
-
-pa = pyaudio.PyAudio()
 
 r = sr.Recognizer()
 
@@ -40,14 +30,6 @@ def translate(audio):
         response["msg"] = "Speech Unrecognizable"
     return response
 
-def listen(mic):
-    with mic as source:
-        r.adjust_for_ambient_noise(source, duration=0.5)
-        print("listening")
-        audio = r.listen(mic)
-    response = translate(audio)
-    return response
-
 def looped_listen(mic : sr.Microphone, repeat=2):
     frames=[]
     print('press f to start, press esc to stop...')
@@ -66,20 +48,6 @@ def looped_listen(mic : sr.Microphone, repeat=2):
                 if(False):
                     print(translate(frame_data))
 
-def act(phrase_arr):
-    if "open" in phrase_arr[0]:
-        if "discord" in phrase_arr[1]:
-            tts("Opening discord! awdoisfjoijjfwlaklk")
-            open_discord()
-        else:
-            open_site(phrase_arr[1:])
-
-    elif "play" in phrase_arr[0]:
-        yt = youtube(phrase_arr[1:])
-
-    elif response["status"]:
-        tts(response["msg"])
-
 if __name__ == "__main__":
     print("Starting...")
     device_index = 1
@@ -90,10 +58,4 @@ if __name__ == "__main__":
             break
     main_mic = sr.Microphone(device_index=device_index)
     
-    #looped_listen(main_mic)
-    
-    response = listen(main_mic)
-
-    print(response["msg"])
-    phrase_arr = response["msg"].split(" ")
-    act(phrase_arr)
+    looped_listen(main_mic)
