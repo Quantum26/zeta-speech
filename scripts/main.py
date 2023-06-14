@@ -2,20 +2,26 @@ import sys
 sys.path.insert(1, '../')
 import speech_recognition as sr
 import pyaudio
-from speech_recognition import AudioData
-import matplotlib.pyplot as plt
+from assets.tts_funcs import tts
+from assets.console import print_sl, clear_terminal_line
+from apps.open import open_app
+from apps.play import yt_play
+import numpy as np
 import keyboard
 from threading import Thread
-import numpy as np
-# import tkinter as ttk
 
-# # root window
-# root = ttk.Tk()
-# root.geometry('300x200')
-# root.resizable(False, False)
-# root.title('Noise Gate')
-# # slider current value
-# current_value = ttk.DoubleVar(value = 50000)
+commands = {
+    "open" : open_app,
+    "play" : yt_play
+}
+
+
+CHUNK = 1024
+FORMAT = pyaudio.paInt16
+CHANNELS = 1
+RATE = 44100
+
+pa = pyaudio.PyAudio()
 
 r = sr.Recognizer()
 
@@ -40,44 +46,30 @@ def translate(audio):
         response["msg"] = "Speech Unrecognizable"
     return response
 
-def get_current_value():
-    return int(current_value.get())
+def listen(mic):
+    with mic as source:
+        r.adjust_for_ambient_noise(source, duration=0.5)
+        print("listening")
+        audio = r.listen(mic)
+    response = translate(audio)
+    return response
 
-def looped_listen(mic : sr.Microphone, repeat=2):
+def looped_listen(mic : sr.Microphone, callback = print):
     global running
-    global plot
     global min_noise_level
     running = True
-    plot = False
     min_noise_level = 4500
-    # min_noise_level = get_current_value()
 
-    # def slider_changed(event):
-    #     min_noise_level = get_current_value()
-    # slider = ttk.Scale(
-    #     root,
-    #     from_=30000,
-    #     to=80000,
-    #     orient='horizontal',
-    #     variable=current_value,
-    #     command=slider_changed
-    # )
-    # thread = Thread(target = root.mainloop)
-    # thread.start()
-    def plot_toggle():
-        global plot
-        plot = not plot
-        output = "on" if plot else "off"
-        print("plot toggled to " + output)
-    def escape():
+    def escape(_ = None):
         global running
-        print("esc pressed")
+        print("quitting...")
         running = False
     keyboard.add_hotkey('esc', callback=escape, suppress=True)
     print('press f to start, press esc to stop...')
+    
     keyboard.wait("f", suppress=True)
-    keyboard.add_hotkey('p', callback=plot_toggle, suppress=True)
 
+    commands["stop"] = escape
     frames=[]
     recording = False
     with mic as source:
@@ -89,12 +81,13 @@ def looped_listen(mic : sr.Microphone, repeat=2):
                     frame_str = b"".join(frames[-20:])
                     arr = np.abs(np.frombuffer(frame_str, np.int16))
                     if arr.max() < min_noise_level:
-                        print('finished recording, procesing...')
+                        print_sl('finished recording, procesing...')
                         frame_str = b"".join(frames)
-                        frame_data = AudioData(frame_str, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
+                        frame_data = sr.AudioData(frame_str, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
                         res = translate(frame_data)
+                        clear_terminal_line()
                         if res["status"]:
-                            print(res["msg"])
+                            callback(res["msg"])
                         recording = False
                         frames = []
             elif len(frames)>10:
@@ -102,17 +95,24 @@ def looped_listen(mic : sr.Microphone, repeat=2):
                 arr = np.abs(np.frombuffer(frame_str, np.int16))
                 if arr.max() > min_noise_level:
                     recording = True
-                    print("recording")
+                    print_sl("recording")
                 elif len(frames) > 30:
                     frames = frames[-30:]
-            
-            if plot:
-                frame_str = b"".join(frames)
-                plt.plot(np.fromstring(frame_str, np.int16))
-                plt.show()
-                frame_data = AudioData(frame_str, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
-                print(translate(frame_data))
-                plot = False
+
+def act(msg):
+    phrase_arr = msg.split(" ")
+    is_command = False
+    for (key, func) in commands.items():
+        try:
+            idx = phrase_arr.index(key)
+            is_command = True
+            func(phrase_arr[idx:])
+            break
+        except ValueError:
+            continue
+
+    if not is_command:
+        tts(msg)
 
 if __name__ == "__main__":
     print("Starting...")
@@ -124,4 +124,4 @@ if __name__ == "__main__":
             break
     main_mic = sr.Microphone(device_index=device_index)
     
-    looped_listen(main_mic)
+    looped_listen(main_mic, act)
