@@ -1,8 +1,6 @@
-import sys
-sys.path.insert(1, '../')
 import speech_recognition as sr
 import pyaudio
-from assets.tts_funcs import tts
+from assets.tts_funcs import tts_engine
 from assets.console import print_sl, clear_terminal_line
 from apps.open import open_app
 from apps.play import yt_play
@@ -15,6 +13,7 @@ commands = {
     "play" : yt_play
 }
 
+default_mic = "USB PnP"
 
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
@@ -60,16 +59,18 @@ def looped_listen(mic : sr.Microphone, callback = print):
     running = True
     min_noise_level = 4500
 
-    def escape(_ = None):
+    def escape(*args):
         global running
         print("quitting...")
         running = False
     keyboard.add_hotkey('esc', callback=escape, suppress=True)
-    print('press f to start, press esc to stop...')
+    print('press f to start, press esc to quit...')
     
     keyboard.wait("f", suppress=True)
 
-    commands["stop"] = escape
+    commands["quit"] = escape
+    commands["exit"] = escape
+    
     frames=[]
     recording = False
     with mic as source:
@@ -99,14 +100,14 @@ def looped_listen(mic : sr.Microphone, callback = print):
                 elif len(frames) > 30:
                     frames = frames[-30:]
 
-def act(msg):
+def act(msg, tts=print):
     phrase_arr = msg.split(" ")
     is_command = False
     for (key, func) in commands.items():
         try:
             idx = phrase_arr.index(key)
             is_command = True
-            func(phrase_arr[idx:])
+            func(phrase_arr[idx:], tts)
             break
         except ValueError:
             continue
@@ -116,12 +117,14 @@ def act(msg):
 
 if __name__ == "__main__":
     print("Starting...")
+
     device_index = 1
     for mic_index, mic_name in enumerate(sr.Microphone.list_microphone_names()):
-        if "USB PnP" in mic_name:
+        if default_mic in mic_name:
             device_index=mic_index
             print("mic chosen: " + mic_name)
             break
     main_mic = sr.Microphone(device_index=device_index)
-    
-    looped_listen(main_mic, act)
+    with tts_engine() as tts:
+        tts.single_thread_mode()
+        looped_listen(main_mic, lambda msg : act(msg, tts=tts.tts))
