@@ -2,7 +2,8 @@ import speech_recognition as sr
 import pyaudio
 from assets.tts_funcs import tts_engine
 from assets.console import print_sl, clear_terminal_line
-from apps.open import open_app
+from apps.search import google_search
+from apps.open import open_app, set_start
 from apps.play import yt_play
 import numpy as np
 import keyboard
@@ -10,7 +11,9 @@ from threading import Thread
 
 commands = {
     "open" : open_app,
-    "play" : yt_play
+    "play" : yt_play,
+    "set start" : set_start,
+    "google" : google_search
 }
 
 default_mic = "USB PnP"
@@ -57,20 +60,19 @@ def looped_listen(mic : sr.Microphone, callback = print):
     global running
     global min_noise_level
     running = True
-    min_noise_level = 4500
+    min_noise_level = 3500
 
     def escape(*args):
         global running
         print("quitting...")
         running = False
     keyboard.add_hotkey('esc', callback=escape, suppress=True)
-    print('press f to start, press esc to quit...')
-    
-    keyboard.wait("f", suppress=True)
+
+    print('started! press esc or say "quit" or "exit" to quit')
 
     commands["quit"] = escape
     commands["exit"] = escape
-    
+
     frames=[]
     recording = False
     with mic as source:
@@ -79,10 +81,10 @@ def looped_listen(mic : sr.Microphone, callback = print):
             frames.append(buffer)
             if recording:
                 if len(frames) > 50: 
-                    frame_str = b"".join(frames[-20:])
+                    frame_str = b"".join(frames[-30:])
                     arr = np.abs(np.frombuffer(frame_str, np.int16))
                     if arr.max() < min_noise_level:
-                        print_sl('finished recording, procesing...')
+                        print_sl('finished recording, processing...')
                         frame_str = b"".join(frames)
                         frame_data = sr.AudioData(frame_str, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
                         res = translate(frame_data)
@@ -104,12 +106,22 @@ def act(msg, tts=print):
     phrase_arr = msg.split(" ")
     is_command = False
     for (key, func) in commands.items():
+        key = key.split(" ")
         try:
-            idx = phrase_arr.index(key)
+            idx = phrase_arr.index(key[0])
             is_command = True
-            func(phrase_arr[idx:], tts)
-            break
+            for i in range(1, len(key)):
+                if key[i] != phrase_arr[idx+i]:
+                    is_command = False
+                    break
+            if is_command:
+                func(phrase_arr[idx:], tts)
+                break
         except ValueError:
+            is_command = False
+            continue
+        except IndexError:
+            is_command = False
             continue
 
     if not is_command:
