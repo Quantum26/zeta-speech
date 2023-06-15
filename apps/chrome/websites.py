@@ -9,7 +9,12 @@ def open_site(phrase):
     os.startfile("C:/Users/ianso/Desktop/ian.lnk")
     #choose website to open
     dest = None
-    f = open(os.path.join(os.path.dirname(__file__), 'secrets/sites.json'), 'r')
+    file_to_open = os.path.join(os.path.dirname(__file__),'secrets/sites.json')
+    if os.path.isfile(file_to_open):
+        f = open(file_to_open, 'r')
+    else:
+        f = open(os.path.join(os.path.dirname(__file__),'secrets/sites_example.json'), 'r')
+
     data = json.load(f)
     try:
         dest = data[phrase[0]]
