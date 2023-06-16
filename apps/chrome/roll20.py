@@ -32,9 +32,8 @@ class roll20_driver():
         self.characters = self.driver.find_element(By.ID, "ui-id-3")
         self.char = None
         self.iframe = {}
-        self.class_resource = None
-        self.resource_left = None
-        self.resource_right = None
+        self.csheet = None
+        self.attrs = None
     def __enter__(self):
         self.start_roll20()
         return self
@@ -54,17 +53,33 @@ class roll20_driver():
                 print(charac.text)
                 charac.click()
                 break
-        time.sleep(0.1)
+        time.sleep(0.5)
         for iframe in self.driver.find_elements(by=By.TAG_NAME, value="iframe"):
             if name in iframe.get_attribute("title"):
                 self.iframe[name] = iframe
                 self.driver.switch_to.frame(iframe)
-                self.class_resource = self.driver.find_element(by=By.NAME, value="attr_class_resource")
-                self.resource_left = self.driver.find_element(by=By.NAME, value="attr_resource_left")
-                self.resource_right = self.driver.find_element(by=By.NAME, value="attr_resource_right")
+                for link in self.driver.find_elements(by=By.TAG_NAME, value='a'):
+                    if link.text == "Character Sheet":
+                        self.csheet = link
+                    elif link.text == "Attributes & Abilities":
+                        self.attrs = link
                 self.driver.switch_to.default_content()
                 break
-
+    def edit_attr(name, val):
+        if self.attrs is not None and self.csheet is not None:
+            self.attrs.click()
+            for attrib in self.driver.find_elements(by=By.CLASS_NAME, value="attrib"):
+                try:
+                    if attrib.find_element(by=By.CLASS_NAME, value="attrname").text == name:
+                        attrib_val = attrib.find_element(by=By.CLASS_NAME, value="current").find_element(by=By.TAG_NAME, value="input")
+                        value = int(attrib_val.get_attribute("value"))
+                        if value > 0:
+                            self.resource_right.clear()
+                            self.resource_right.send_keys(str(quiver_arrows-1))
+                        break
+                except Exception as e:
+                    print(e)
+            self.csheet.click()
     def attack(self, weapon, char="Harthos"):
         self.open_chat()
         self.driver.switch_to.frame(self.iframe[char])
@@ -76,15 +91,7 @@ class roll20_driver():
                     if weapon in c.text:
                         elem.click()
                         if weapon=="Longbow":
-                            quiver_arrows = int(self.resource_right.get_attribute("title"))
-                            if quiver_arrows > 0:
-                                self.resource_right.clear()
-                                self.resource_right.send_keys(str(quiver_arrows-1))
-                            else:
-                                arrows = int(self.class_resource.get_attribute("title"))
-                                if arrows > 0:
-                                    self.class_resource.clear()
-                                    self.class_resource.send_keys(str(arrows-1))
+                            self.edit_attr("class_resource", -1)
                         break
                 except Exception as e:
                     print(e)
@@ -123,25 +130,52 @@ class roll20_driver():
             pass
         self.driver.switch_to.default_content()
 
+    def global_damage_mod(self, name):
+        try:
+            for mod in self.damagemods.find_elements(By.xpath("./child::*")):
+                if mod.find_element(by=By.CLASS_NAME, value='title').text == name:
+                    mod.find_element(by=By.CLASS_NAME, value = "active-flag").click()
+                    break
+        except NoSuchElementException:
+            pass
+
+    def send_message(self, msg):
+        self.open_chat()
+        text_area = self.driver.find_element(by=By.ID, value="textchat-input").find_element(by=By.TAG_NAME, value="textarea")
+        text_area.click()
+        text_area.send_keys(msg)
+        self.driver.find_element(by=By.ID, value="chatSendBtn").click()
 
     def process_command(self, msg, tts=print):
         tts(msg)
         if "attack" in msg or "hit" in msg or "kaboom" in msg or "smack" in msg:
+            if "wind" in msg:
+                self.attack(weapon = "Wind")
             if "short" in msg and "sword" in msg:
                 self.attack(weapon = "Shortsword")
             elif "bow" in msg or "longbow" in msg:
                 self.attack(weapon = "Longbow")
             elif "mall" in msg or "maul" in msg:
                 self.attack(weapon = "Maul")
-        elif "roll" in msg and "save" in msg:
-            msg = msg.split(" ")
+        if "whirlwind" in msg:
+            self.attack(weapon = "Whirlwind")
+        msg = msg.split(" ")
+        if ("rolls" in msg or "roll" in msg) and "save" in msg:
             self.roll_save(msg[msg.index("save")-1])
-        elif "roll" in msg and "damage" in msg:
+        elif ("rolls" in msg or "roll" in msg) and "damage" in msg:
             self.roll_damage()
         elif "roll" in msg:
-            msg = msg.split(" ")
-            self.roll_skill(msg[msg.index("roll")+1])
-
+            try:
+                self.roll_skill(msg[msg.index("roll")+1])
+            except IndexError:
+                pass
+        elif "rolls" in msg:
+            try:
+                self.roll_skill(msg[msg.index("rolls")+1])
+            except IndexError:
+                pass
+        elif "says" in msg:
+            self.send_message(' '.join(msg[msg.index("says")+1:]))
 if __name__ == "__main__":
     #selenium_start()
     # with roll20_driver() as d:
