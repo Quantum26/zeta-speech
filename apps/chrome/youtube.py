@@ -7,8 +7,14 @@ import json
 import urllib
 from bs4 import BeautifulSoup
 import re
+import os
 
-path = "C:/Program Files/Google/Chrome/Application/chrome.exe %s"
+path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+try:
+    with open(os.path.join(os.path.dirname(__file__),"chrome_path.txt"), 'r') as f:
+        path = f.read()
+except Exception as e:
+    print(e)
 
 class YTDriver:
     def __init__(self, search_terms):

@@ -14,7 +14,8 @@ commands = {
     "open" : open_app,
     "play" : yt_play,
     "set start" : set_start,
-    "google" : google_search
+    "google" : google_search,
+    "start" : open_app,
 }
 
 default_mic = "USB PnP"

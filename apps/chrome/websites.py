@@ -6,8 +6,8 @@ path = "C:/Program Files/Google/Chrome/Application/chrome.exe %s"
 
 def open_site(phrase, start=False):
     # check if chrome is open
-    if start and os.path.isfile(os.path.join(path_to_secrets,"ian.lnk")):
-        os.startfile(os.path.join(path_to_secrets,"ian.lnk"))
+    if start and os.path.isfile(os.path.join(path_to_secrets,"chrome_profile.lnk")):
+        os.startfile(os.path.join(path_to_secrets,"chrome_profile.lnk"))
     #choose website to open
     dest = None
     file_to_open = os.path.join(path_to_secrets,'sites.json')
@@ -19,10 +19,13 @@ def open_site(phrase, start=False):
     data = json.load(f)
     f.close()
     try:
-        dest = data[phrase[0]]
-    except Exception as e:
-        print("Website not recognized.\n" + str(e))
-        return
+        dest = data[phrase]
+    except KeyError as e:
+        try:
+            dest = data[phrase.split(' ')[0]]
+        except KeyError:
+            print("Website not recognized.\n" + str(e))
+            return
     try:
         print("Opening " + dest)
         web.get(path).open(dest)
