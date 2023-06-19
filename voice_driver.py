@@ -14,6 +14,7 @@ class voice_driver():
         self.min_voice_frame_count = 50
         self.min_frame_count = 10
         self.tts = tts
+        self.tts_on = True
 
     """ Speech-to-text helper function. 
         Use to change speech-to-text API.
@@ -43,6 +44,9 @@ class voice_driver():
             audio = self.r.listen(mic)
         response = self.translate(audio)
         return response
+    
+    def set_tts(self, val):
+        self.tts_on = val
 
     def looped_listen(self, callback = print):
         self.running = True
@@ -56,6 +60,8 @@ class voice_driver():
 
         self.commands["quit"] = escape
         self.commands["exit"] = escape
+        self.commands["tts on"] = lambda : self.set_tts(True)
+        self.commands["tts off"] = lambda : self.set_tts(False)
 
         frames=[]
         self.recording = False
@@ -109,6 +115,9 @@ class voice_driver():
                 continue
 
         if not is_command:
-            self.tts(msg)
+            if self.tts_on:
+                self.tts(msg)
+            else:
+                print("Command not recognized: " + msg)
     def run(self):
         self.looped_listen(self.act)
