@@ -18,13 +18,13 @@ except Exception as e:
 global start
 start = False
 
-def set_start(phrase_arr, tts):
+def set_start(phrase_arr, vd):
     global start
     if "true" in phrase_arr:
-        tts("start set to True")
+        vd.tts("start set to True")
         start = True
     elif "false" in phrase_arr:
-        tts("start set to False")
+        vd.tts("start set to False")
         start = False
 
 def selenium_start():
@@ -43,12 +43,14 @@ open_dict = [
         {"key":"discord" ,"msg":"Opening Discord!", "func":open_discord}, 
         {"key":"selenium" ,"msg":"Opening Selenium Browser!", "func":selenium_start}
         ]
-def open_app(phrase_arr, tts):
+def open_app(phrase_arr, voice_driver):
     global start
     for app_dict in open_dict:
         if phrase_arr[1]==app_dict["key"]:
             if app_dict["msg"] is not None:
-                tts(app_dict["msg"])
+                voice_driver.tts(app_dict["msg"])
             app_dict["func"]()
             return
-    open_site(' '.join(phrase_arr[1:]), start)
+    if open_site(' '.join(phrase_arr[1:]), start):
+        if start:
+            start = False

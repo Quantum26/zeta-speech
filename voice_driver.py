@@ -15,6 +15,14 @@ class voice_driver():
         self.min_frame_count = 10
         self.tts = tts
         self.tts_on = True
+        self.default_commands = {
+            "quit" : self.escape,
+            "exit": self.escape,
+            "tts on" : lambda : self.set_tts(True),
+            "tts off" : lambda : self.set_tts(False)
+            }
+        self.exit_funcs = {}
+        self.local_objects = []
 
     """ Speech-to-text helper function. 
         Use to change speech-to-text API.
@@ -48,23 +56,60 @@ class voice_driver():
     def set_tts(self, val):
         self.tts_on = val
 
+    def add_commands(self, cmds):
+        self.commands.update(cmds)
+
+    def remove_commands(self, keywords : list, prefix = False):
+        result = []
+        for key in keywords:
+            if prefix:
+                keys_to_remove = []
+                for cmd_key in self.commands.keys():
+                    if key == cmd_key.split(' ')[0]:
+                        keys_to_remove.append(cmd_key)
+                #print(keys_to_remove)
+                for rm_key in keys_to_remove:
+                    result.append(self.commands.pop(rm_key))
+                    #print("key removed: " + rm_key)
+            else:
+                    result.append(self.commands.pop(key))
+        return result
+
+    def set_commands(self, cmds):
+        self.commands = cmds
+        self.commands.update(self.default_commands)
+
+    def run_on_exit(self, entry):
+        """ Add functions that need to be run on exit for clean finishes.
+            This requires the keyword to be a command at exit.
+            Please try to avoid using this unless absolutely necessary.
+        Args:
+            entry (dict): {keyword : function to be run}
+        """
+        self.exit_funcs.update(entry)
+
+    def escape(self, *args):
+        print("checking for exit functions to run")
+        for (key,value) in self.exit_funcs.items():
+            if key in self.commands.keys():
+                try:
+                    value()
+                except Exception as e:
+                    print(e)
+        print("quitting...")
+        self.running = False
+
     def looped_listen(self, callback = print):
         self.running = True
 
-        def escape(*args):
-            print("quitting...")
-            self.running = False
-        keyboard.add_hotkey('esc', callback=escape, suppress=True)
+        keyboard.add_hotkey('shift+esc', callback=self.escape, suppress=False)
 
-        print('started! press esc or say "quit" or "exit" to quit')
-
-        self.commands["quit"] = escape
-        self.commands["exit"] = escape
-        self.commands["tts on"] = lambda : self.set_tts(True)
-        self.commands["tts off"] = lambda : self.set_tts(False)
+        self.commands.update(self.default_commands)
 
         frames=[]
         self.recording = False
+
+        print('started! press shift + esc or say "quit" or "exit" to quit')
         with self.mic as source:
             while self.running:
                 buffer = source.stream.read(source.CHUNK)
@@ -105,7 +150,7 @@ class voice_driver():
                         is_command = False
                         break
                 if is_command:
-                    func(phrase_arr[idx:], self.tts)
+                    func(phrase_arr[idx:], self)
                     break
             except ValueError:
                 is_command = False

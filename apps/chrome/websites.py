@@ -2,7 +2,14 @@ import webbrowser as web
 import json
 import os
 path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'secrets')
-path = "C:/Program Files/Google/Chrome/Application/chrome.exe %s"
+
+path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+try:
+    with open(os.path.join(os.path.dirname(__file__),"chrome_path.txt"), 'r') as f:
+        path = f.read()
+except Exception as e:
+    print(e)
+path = path.replace('\\', '/') + " %s"
 
 def open_site(phrase, start=False):
     # check if chrome is open
@@ -25,11 +32,12 @@ def open_site(phrase, start=False):
             dest = data[phrase.split(' ')[0]]
         except KeyError:
             print("Website not recognized.\n" + str(e))
-            return
+            return False
     try:
         print("Opening " + dest)
         web.get(path).open(dest)
     except Exception as e:
         print("Error: " + str(e))
-    
+        return False
+    return True
     
