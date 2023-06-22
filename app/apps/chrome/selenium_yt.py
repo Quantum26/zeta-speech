@@ -38,14 +38,18 @@ class SeleniumYTMusic():
         if len(search_terms) == 0:
             self.unpause()
             return
-        self.pause()
+        if not self.paused:
+            self.pause()
         URL = "https://music.youtube.com/search?q=" + '+'.join(search_terms)
         self.driver.get(URL)
         time.sleep(1)
         elem = WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//button[@class='yt-spec-button-shape-next yt-spec-button-shape-next--filled yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading ']")))
-        self.driver.find_element(by=By.XPATH, value="//button[@class='yt-spec-button-shape-next yt-spec-button-shape-next--filled yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading ']").click()
-        self.paused = False
+        try:
+            self.driver.find_element(by=By.XPATH, value="//button[@class='yt-spec-button-shape-next yt-spec-button-shape-next--filled yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading ']").click()
+            self.paused = False
+        except Exception as e:
+            print("ran into problems: " + e)
 
     def search(self, search_terms):
         if type(search_terms) != list:
@@ -78,7 +82,10 @@ class SeleniumYTMusic():
             self.paused = False
     def pause(self):
         if not self.paused:
-            self.driver.find_element(by=By.ID, value="left-controls").find_element(by=By.CLASS_NAME, value="play-pause-button").click()
+            try:
+                self.driver.find_element(by=By.ID, value="left-controls").find_element(by=By.CLASS_NAME, value="play-pause-button").click()
+            except Exception as e:
+                print("Issue with pausing: " + e)
             self.paused = True
     def prev(self):
         self.driver.find_element(by=By.ID, value="left-controls").find_element(by=By.XPATH, value="//tp-yt-paper-icon-button[@title='Previous']").click()

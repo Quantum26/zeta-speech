@@ -51,6 +51,6 @@ def open_app(phrase_arr, voice_driver):
                 voice_driver.tts(app_dict["msg"])
             app_dict["func"]()
             return
-    if open_site(' '.join(phrase_arr[1:]), start):
-        if start:
-            start = False
+    open_site(' '.join(phrase_arr[1:]), start)
+    if start:
+        start = False
