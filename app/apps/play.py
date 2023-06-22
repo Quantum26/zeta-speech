@@ -1,9 +1,8 @@
 #from apps.chrome.youtube import YTDriver as youtube
 from apps.chrome.selenium_yt import SeleniumYTMusic
 from apps.open import selenium_start
-from voice_driver import voice_driver
 
-def yt_play(phrase_arr, vd : voice_driver):
+def yt_play(phrase_arr, vd):
     vd.tts("starting selenium driver")
     music = SeleniumYTMusic()
     vd.local_objects.append(music)

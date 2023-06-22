@@ -1,19 +1,24 @@
 import requests
 import json
 import sys
-sys.path.insert(1, '../')
+import os
+sys.path.insert(1, '../../')
+
+path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'secrets')
+
 
 url = "https://weatherapi-com.p.rapidapi.com/forecast.json"
 
 querystring = {"q":"Las Vegas","days":"3"}
-
+with open(os.path.join(path_to_secrets, 'secrets.json'), 'r') as f:
+	key = json.load(f)["weather_api_key"]
 headers = {
-	"X-RapidAPI-Key": "081475fe84mshc57f65e5920ea51p184774jsn89e436c1bc72",
+	"X-RapidAPI-Key": key,
 	"X-RapidAPI-Host": "weatherapi-com.p.rapidapi.com"
 }
 
 response = requests.get(url, headers=headers, params=querystring)
 
-with open("weather.json", 'w') as f:
+with open(os.path.join(os.path.dirname(__file__), "weather.json"), 'w') as f:
     f.write(json.dumps(response.json()))
-print(response.json())
+print(response.json()['current'])

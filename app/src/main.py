@@ -1,11 +1,13 @@
 import speech_recognition as sr
 import pyaudio
+import sys
+sys.path.insert(1, '../')
 from assets.tts_funcs import tts_engine
 from assets.console import print_sl, clear_terminal_line
 from apps.search import google_search
 from apps.open import open_app, set_start
 from apps.play import yt_play
-from voice_driver import voice_driver
+from assets.voice_driver import voice_driver
 import numpy as np
 import keyboard
 from threading import Thread
