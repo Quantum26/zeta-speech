@@ -6,7 +6,6 @@ from threading import Thread
 from time import sleep
 from subprocess import Popen
 path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(__file__)),'secrets')
-sys.path.insert(1, path_to_secrets)
 
 chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
 try:
@@ -33,7 +32,8 @@ def selenium_start():
     def st_cmd():
         Popen([ chrome_path, 
                 "--remote-debugging-port=8989", 
-                "--user-data-dir=" + profile_data], 
+                "--user-data-dir=" + profile_data
+                ], 
                 shell=True, stdin=None, stdout=None, stderr=None)
     t = Thread(target = st_cmd)
     t.start()

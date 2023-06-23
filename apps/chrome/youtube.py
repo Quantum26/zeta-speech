@@ -10,18 +10,19 @@ import time
 
 path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'secrets')
 
-class SeleniumYTMusic():
-    def __init__(self):
-        co = ChromeOptions()
-        co.add_experimental_option("debuggerAddress", "localhost:8989")
-        self.driver = webdriver.Chrome(options = co)
+class SeleniumYoutube():
+    def __init__(self, driver=None):
+        if driver is None:
+            co = ChromeOptions()
+            co.add_experimental_option("debuggerAddress", "localhost:8989")
+            self.driver = webdriver.Chrome(options = co)
+        else:
+            self.driver = driver
+        self.on_search_page = False
         self.paused = True
 
-    def __enter__(self):
-        co = ChromeOptions()
-        co.add_experimental_option("debuggerAddress", "localhost:8989")
-        self.driver = webdriver.Chrome(options = co)
-        self.paused = True
+    def __enter__(self, driver=None):
+        self.__init__(driver=driver)
         return self
 
     def stop(self):
@@ -40,37 +41,27 @@ class SeleniumYTMusic():
             return
         if not self.paused:
             self.pause()
-        URL = "https://youtube.com/search?q=" + '+'.join(search_terms)
-        self.driver.get(URL)
-        # time.sleep(1)
-        # elem = WebDriverWait(self.driver, 10).until(
-        #     EC.presence_of_element_located((By.XPATH, "//button[@class='yt-spec-button-shape-next yt-spec-button-shape-next--filled yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading ']")))
-        # try:
-        #     self.driver.find_element(by=By.XPATH, value="//button[@class='yt-spec-button-shape-next yt-spec-button-shape-next--filled yt-spec-button-shape-next--mono yt-spec-button-shape-next--size-m yt-spec-button-shape-next--icon-leading ']").click()
-        #     self.paused = False
-        # except Exception as e:
-        #     print("ran into problems: " + e)
+        index_to_play = 1
+        if self.on_search_page and search_terms[0].isdigit():
+            index_to_play = int(search_terms[0])
+            if index_to_play <= 0:
+                index_to_play = 1
+        else:
+            self.search(search_terms, play=True)
+        results = self.driver.find_element(by=By.ID, value="primary").find_elements(by=By.TAG_NAME, value="ytd-video-renderer")
+        if len(results) < index_to_play:
+            index_to_play = len(results)
+        results[index_to_play-1].click()
+        self.paused = False
 
-    def search(self, search_terms):
+    def search(self, search_terms, play=False):
         if type(search_terms) != list:
             search_terms = search_terms.split(' ')
-        # search_bar = self.driver.find_element(by=By.CLASS_NAME, value="search-box")
-        # search_bar.click()
-        # search_bar = search_bar.find_element(by=By.TAG_NAME,value="input")
-        # search_bar.clear()
-        # search_bar.send_keys(' '.join(search_terms))
-        # search_bar.send_keys('\n')
-
-    def add_to_queue(self, search_terms):
-        print("Adding '" + " ".join(search_terms) + "' to play next!")
-        self.search(search_terms)
-        # time.sleep(5)
-        # elem = WebDriverWait(self.driver, 10).until(
-        #     EC.presence_of_element_located((By.ID, "button-shape")))
-        # self.driver.find_element(by=By.ID, value="button-shape").click()
-        # for option in self.driver.find_elements(by=By.TAG_NAME, value="ytmusic-menu-service-item-renderer"):
-        #     if option.find_element(by=By.TAG_NAME, value="yt-formatted-string").text == "Play next":
-        #         option.click()
+        URL = "https://youtube.com/results?search_query=" + '+'.join(search_terms)
+        if not play:
+            print("say 'youtube play' + an index of what video to play in results. (i.e. \"youtube play 1\")")
+        self.driver.get(URL)
+        self.on_search_page = True
 
     def __call__(self, search_terms):
         self.play(search_terms)

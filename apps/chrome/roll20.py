@@ -8,34 +8,38 @@ import time
 import json
 import sys
 path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'secrets')
-sys.path.insert(1, path_to_secrets)
-sys.path.insert(2, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import speech_recognition as sr
 import pyaudio
 from assets.tts_funcs import tts_engine
-from scripts import selenium_start
-from voice_driver import voice_driver
+from assets.voice_driver import voice_driver
 
 
 default_mic = "USB PnP"
 
 class roll20_driver():
-    def start_roll20(self):
-        co = ChromeOptions()
-        co.add_experimental_option("debuggerAddress", "localhost:8989")
-        self.driver = webdriver.Chrome(options = co)
+    def start_roll20(self, driver, start):
+        if driver is None:
+            co = ChromeOptions()
+            co.add_experimental_option("debuggerAddress", "localhost:8989")
+            self.driver = webdriver.Chrome(options = co)
+        else:
+            self.driver = driver
         with open(os.path.join(path_to_secrets,'sites.json'), 'r') as f:
             links_data = json.load(f)
         URL = links_data["prima"]
-        self.driver.get(URL)
+        if start:
+            self.driver.get(URL)
         self.chat = self.driver.find_element(By.ID, "ui-id-1")
         self.characters = self.driver.find_element(By.ID, "ui-id-3")
         self.char = None
         self.iframe = {}
         self.csheet = None
         self.attrs = None
-    def __enter__(self):
-        self.start_roll20()
+    def __init__(self, driver=None, start=True):
+        self.start_roll20(driver, start)
+    def __enter__(self, driver=None, start=True):
+        self.start_roll20(driver, start)
         return self
     def __exit__(self, type, value, traceback):
         print("goodbye")
@@ -146,8 +150,8 @@ class roll20_driver():
         text_area.send_keys(msg)
         self.driver.find_element(by=By.ID, value="chatSendBtn").click()
 
-    def process_command(self, msg, tts=print):
-        tts(msg)
+    def process_command(self, msg, tts=lambda msg : print(msg, end='\r')):
+        print(msg)
         if "attack" in msg or "hit" in msg or "kaboom" in msg or "smack" in msg:
             if "wind" in msg:
                 self.attack(weapon = "Wind")
@@ -158,6 +162,7 @@ class roll20_driver():
             elif "mall" in msg or "maul" in msg:
                 self.attack(weapon = "Maul")
         if "whirlwind" in msg:
+            tts("whirlwind starting")
             self.attack(weapon = "Whirlwind")
         msg = msg.split(" ")
         if ("rolls" in msg or "roll" in msg) and "save" in msg:
@@ -174,6 +179,8 @@ class roll20_driver():
                 self.roll_skill(msg[msg.index("rolls")+1])
             except IndexError:
                 pass
+        elif "say" in msg:
+            self.send_message(' '.join(msg[msg.index("say")+1:]))
         elif "says" in msg:
             self.send_message(' '.join(msg[msg.index("says")+1:]))
 if __name__ == "__main__":
@@ -200,4 +207,9 @@ if __name__ == "__main__":
         d.open_char("Harthos")
         with tts_engine() as tts:
             vd = voice_driver(mic=main_mic, commands={}, tts=tts.tts)
-            vd.looped_listen(callback=lambda msg : d.process_command(msg))
+            vd.looped_listen(callback=lambda msg : d.process_command(msg, tts=tts.tts))
+            # def roll20_callback():
+            #     print("f4 pressed")
+            #     d.process_command(vd.listen()["msg"], tts.tts)
+            # keyboard.add_hotkey("f4", callback=roll20_callback, suppress=True)
+            # keyboard.wait("esc", suppress=True)

@@ -35,7 +35,7 @@ def open_site(phrase, start=False):
             return False
     try:
         print("Opening " + dest)
-        web.get(path).open(dest)
+        web.get(path).open(dest, new=2, autoraise=True)
     except Exception as e:
         print("Error: " + str(e))
         return False

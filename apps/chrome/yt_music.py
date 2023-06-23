@@ -11,17 +11,21 @@ import time
 path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'secrets')
 
 class SeleniumYTMusic():
-    def __init__(self):
-        co = ChromeOptions()
-        co.add_experimental_option("debuggerAddress", "localhost:8989")
-        self.driver = webdriver.Chrome(options = co)
+    def __init__(self, driver=None, window_handle = None):
+        if driver is None:
+            co = ChromeOptions()
+            co.add_experimental_option("debuggerAddress", "localhost:8989")
+            self.driver = webdriver.Chrome(options = co)
+        else:
+            self.driver = driver
+        if window_handle is None:
+            self.window_handle = self.driver.window_handles[-1]
+        else:
+            self.window_handle = window_handle
         self.paused = True
 
-    def __enter__(self):
-        co = ChromeOptions()
-        co.add_experimental_option("debuggerAddress", "localhost:8989")
-        self.driver = webdriver.Chrome(options = co)
-        self.paused = True
+    def __enter__(self, driver=None):
+        self.__init__(driver=driver)
         return self
 
     def stop(self):

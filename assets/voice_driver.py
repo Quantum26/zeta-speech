@@ -22,7 +22,8 @@ class voice_driver():
             "tts off" : lambda : self.set_tts(False)
             }
         self.exit_funcs = {}
-        self.local_objects = []
+        self.local_objects = {}
+        self.obj_index = 0
 
     """ Speech-to-text helper function. 
         Use to change speech-to-text API.
@@ -78,6 +79,20 @@ class voice_driver():
     def set_commands(self, cmds):
         self.commands = cmds
         self.commands.update(self.default_commands)
+    
+    def add_local_object(self, o, key=None):
+        if key is None:
+            key = str(self.obj_index)
+            self.obj_index += 1
+        self.local_objects[key] = o
+        return key
+    
+    def rm_local_object(self, key):
+        try:
+            return self.local_objects.pop(key)
+        except KeyError:
+            print("key not in local objects")
+            return None
 
     def run_on_exit(self, entry):
         """ Add functions that need to be run on exit for clean finishes.
@@ -140,7 +155,8 @@ class voice_driver():
     def act(self, msg):
         phrase_arr = msg.split(" ")
         is_command = False
-        for (key, func) in self.commands.items():
+        commands = self.commands.items()
+        for (key, func) in commands:
             key = key.split(" ")
             try:
                 idx = phrase_arr.index(key[0])
