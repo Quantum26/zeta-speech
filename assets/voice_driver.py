@@ -2,7 +2,6 @@ import speech_recognition as sr
 import pyaudio
 from assets.tts_funcs import tts_engine
 from assets.console import print_sl, clear_terminal_line
-from assets.class_templates import command_module
 import numpy as np
 import keyboard
 
@@ -24,10 +23,15 @@ class voice_driver():
         self.min_frame_count = 10
         self.tts = tts
         self.tts_on = True
-        self.commands.update(self.default_commands)
-        self.module_index = -1
-        self.modules = {}
-        self.flag_dict = {}
+        self.default_commands = {
+            "quit" : self.escape,
+            "exit": self.escape,
+            "tts on" : lambda : self.set_tts(True),
+            "tts off" : lambda : self.set_tts(False)
+            }
+        self.exit_funcs = {}
+        self.local_objects = {}
+        self.obj_index = 0
 
     """ Speech-to-text helper function. 
         Use to change speech-to-text API.
@@ -60,52 +64,61 @@ class voice_driver():
     
     def set_tts(self, val):
         self.tts_on = val
-        self.tts("TTS set to " + str(val))
 
-    def add_module(self, m : command_module):
-        self.commands.update(m.get_commands())
-        self.module_index += 1
-        idx = self.module_index
-        self.modules[idx] = (m)
-        for flag in m.get_flag_names():
-            self.flag_dict[flag] = idx
-        return idx
+    def add_commands(self, cmds):
+        self.commands.update(cmds)
 
-    def remove_module(self, idx : int, run_exit_funcs=True):
-        if idx not in self.modules:
-            return {
-                "status_ok" : False,
-                "msg" :  "Module does not exist."
-            }
-        for key in self.modules[idx].get_commands().keys():
-            self.commands.pop(key)
-        for flag in self.modules[idx].get_flag_names():
-            self.flag_dict.pop(flag)
-        status_msg = "Removed module successfully."
-        if run_exit:
-            status_msg = "Removed and " + self.modules[idx].exit()
-        return {
-                "status_ok" : True,
-                "msg" : status_msg,
-                "module" :  self.modules.pop(idx)
-            }
-    def list_commands(self, *args):
-        print("Here are the commands:")
-        for cmd in self.commands.keys():
-            print(cmd)
-    def set_flag(self, phrase_arr, voice_driver):
-        name = phrase_arr[0]
-        value = phrase_arr[1]
-        if name in self.flag_dict:
-            self.modules[self.flag_dict[name]].set_flag(value)
-            self.tts("Flag " + name + " set to " + str(value))
-        else:
-            print("Could not set flag: " + name)
+    def remove_commands(self, keywords : list, prefix = False):
+        result = []
+        for key in keywords:
+            if prefix:
+                keys_to_remove = []
+                for cmd_key in self.commands.keys():
+                    if key == cmd_key.split(' ')[0]:
+                        keys_to_remove.append(cmd_key)
+                #print(keys_to_remove)
+                for rm_key in keys_to_remove:
+                    result.append(self.commands.pop(rm_key))
+                    #print("key removed: " + rm_key)
+            else:
+                    result.append(self.commands.pop(key))
+        return result
+
+    def set_commands(self, cmds):
+        self.commands = cmds
+        self.commands.update(self.default_commands)
+    
+    def add_local_object(self, o, key=None):
+        if key is None:
+            key = str(self.obj_index)
+            self.obj_index += 1
+        self.local_objects[key] = o
+        return key
+    
+    def rm_local_object(self, key):
+        try:
+            return self.local_objects.pop(key)
+        except KeyError:
+            print("key not in local objects")
+            return None
+
+    def run_on_exit(self, entry):
+        """ Add functions that need to be run on exit for clean finishes.
+            This requires the keyword to be a command at exit.
+            Please try to avoid using this unless absolutely necessary.
+        Args:
+            entry (dict): {keyword : function to be run}
+        """
+        self.exit_funcs.update(entry)
 
     def escape(self, *args):
-        print("Exiting Modules")
-        for module in self.modules.values():
-            print(module.exit())
+        print("checking for exit functions to run")
+        for (key,value) in self.exit_funcs.items():
+            if key in self.commands.keys():
+                try:
+                    value()
+                except Exception as e:
+                    print(e)
         print("quitting...")
         self.running = False
 
