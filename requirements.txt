@@ -14,6 +14,10 @@ python-dateutil
 pyttsx3
 scikit-learn
 scipy
+<<<<<<< HEAD
+=======
+selenium
+>>>>>>> 06a6a36c3b1c222f8a1e78106188c7570d1293ea
 SpeechRecognition
 websockets
 winshell
