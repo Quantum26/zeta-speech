@@ -9,12 +9,12 @@ import keyboard
 class voice_driver():
     def __init__(self, mic : sr.Microphone, commands = {}, min_noise_level = 3500, tts=print):
         self.default_commands = {
+            "list commands" : self.list_commands,
             "quit" : self.escape,
             "exit": self.escape,
             "tts on" : lambda *args: self.set_tts(True),
             "tts off" : lambda *args: self.set_tts(False),
             "set" : self.set_flag,
-            "list commands" : self.list_commands
             }        
         self.commands = commands
         self.r = sr.Recognizer()
@@ -161,7 +161,7 @@ class voice_driver():
                         is_command = False
                         break
                 if is_command:
-                    func(phrase_arr[idx:], self)
+                    success = func(phrase_arr[idx:], self)
                     break
             except ValueError:
                 is_command = False
