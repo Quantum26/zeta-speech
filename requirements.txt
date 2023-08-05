@@ -14,6 +14,7 @@ python-dateutil
 pyttsx3
 scikit-learn
 scipy
+selenium
 SpeechRecognition
 websockets
 winshell
