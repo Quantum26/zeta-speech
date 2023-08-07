@@ -1,3 +1,9 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from subprocess import Popen
+import os
+
+path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(__file__)),'secrets')
 
 class command_module():
     def __init__(self, name : str, commands = {}, flags = {}, objs = {}, exit_funcs={}):
@@ -44,3 +50,28 @@ class command_module():
                     else: 
                         exit_msg += ", " + str(e)
         return exit_msg
+
+
+class selenium_module(command_module):
+    def __init__(self, name="Selenium Module", commands = {}, flags = {}, objs = {}, exit_funcs={}):
+        profile_data = os.path.join(path_to_secrets, "profile_data")
+        Popen([ chrome_path, 
+                "--remote-debugging-port=8989", 
+                "--user-data-dir=" + profile_data
+                ], 
+                shell=True, stdin=None, stdout=None, stderr=None)
+        co = ChromeOptions()
+        co.add_experimental_option("debuggerAddress", "localhost:8989")
+        self.driver = webdriver.Chrome(options = co)
+
+        exit_funcs["selenium_exit"] = self.stop
+        super().__init__(name, commands, flags, objs, exit_funcs)
+        print("Started selenium Driver for" + name)
+    def __enter__(self):
+        self.__init__()
+        return self
+    def stop(self, *args):
+        print("Quitting Selenium Driver for " + self.name)
+        self.driver.quit()
+    def __exit__(self, type, value, traceback):
+        self.stop()

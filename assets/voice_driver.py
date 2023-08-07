@@ -9,10 +9,10 @@ class voice_driver():
     def __init__(self, mic : sr.Microphone, commands = {}, min_noise_level = 3500, tts=print):
         self.default_commands = {
             "list commands" : self.list_commands,
+            "set tts on" : lambda *args: self.set_tts(True),
+            "set tts off" : lambda *args: self.set_tts(False),
             "quit" : self.escape,
             "exit": self.escape,
-            "tts on" : lambda *args: self.set_tts(True),
-            "tts off" : lambda *args: self.set_tts(False),
             "set" : self.set_flag,
             }        
         self.commands = commands
@@ -23,23 +23,17 @@ class voice_driver():
         self.min_frame_count = 10
         self.tts = tts
         self.tts_on = True
-        self.default_commands = {
-            "quit" : self.escape,
-            "exit": self.escape,
-            "tts on" : lambda : self.set_tts(True),
-            "tts off" : lambda : self.set_tts(False)
-            }
         self.exit_funcs = {}
         self.local_objects = {}
         self.obj_index = 0
 
-    """ Speech-to-text helper function. 
+    def translate(self, audio):
+        """ Speech-to-text helper function. 
         Use to change speech-to-text API.
         
         Input: Audio file to translate
         Output: Response packet with status and translation/error fields. 
         """
-    def translate(self, audio):
         response = {
             "status": True,
             "msg" : None
@@ -61,13 +55,23 @@ class voice_driver():
             audio = self.r.listen(mic)
         response = self.translate(audio)
         return response
-    
+
+    def sort_commands(self):
+        """Makes sure longer commands are first in command dictionary.
+            This way commands like "set tts" take priority over the default "set".
+        """
+        temp_commands = self.commands
+        self.commands = {}
+        for k in sorted(temp_commands.keys(), key=len, reverse=True):
+            self.commands[k] = temp_commands[k]
+
     def set_tts(self, val):
         self.tts_on = val
 
     def add_commands(self, cmds):
         self.commands.update(cmds)
-
+        self.sort_commands()
+        
     def remove_commands(self, keywords : list, prefix = False):
         result = []
         for key in keywords:
@@ -87,6 +91,7 @@ class voice_driver():
     def set_commands(self, cmds):
         self.commands = cmds
         self.commands.update(self.default_commands)
+        self.sort_commands()
     
     def add_local_object(self, o, key=None):
         if key is None:
@@ -162,9 +167,24 @@ class voice_driver():
 
     def act(self, msg):
         phrase_arr = msg.split(" ")
-        is_command = False
+        command_found = False
+        success = True
+        for (start_idx, end_idx, func) in self.get_commands_to_run(phrase_arr):
+            command_found = True
+            if not func(phrase_arr[start_idx:end_idx], self):
+                success = False
+        if not success or not command_found:
+            if self.tts_on:
+                self.tts(msg)
+            else:
+                print("Command not recognized: " + msg)
+
+    def get_commands_recurs(phrase_arr):
+        if len(phrase_arr) == 0:
+            return []
         commands = self.commands.items()
-        for (key, func) in commands:
+        results = []
+        for (key,func) in commands:
             key = key.split(" ")
             try:
                 idx = phrase_arr.index(key[0])
@@ -174,19 +194,23 @@ class voice_driver():
                         is_command = False
                         break
                 if is_command:
-                    success = func(phrase_arr[idx:], self)
+                    results.extend(self.get_commands_to_run(phrase_arr[:idx]))
+                    results.append((idx, func))
+                    results.extend(self.get_commands_to_run(phrase_arr[idx+len(key):]))
                     break
             except ValueError:
-                is_command = False
                 continue
             except IndexError:
-                is_command = False
                 continue
-
-        if not is_command:
-            if self.tts_on:
-                self.tts(msg)
+        return results
+    def get_commands_to_run(pharse_arr):
+        results = get_commands_recurs(pharse_arr)
+        for i in range(len(results)):
+            if i < len(results)-1:
+                results[i] = (results[i][0], results[i+1][0], results[1])
             else:
-                print("Command not recognized: " + msg)
+                results[i] = (results[i][0], len(phrase_arr), results[1])
+        return results
+        
     def run(self):
         self.looped_listen(self.act)

@@ -7,11 +7,15 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 import time
+from assets.class_templates import command_module
 
 path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),'secrets')
 
-class SeleniumYTMusic():
+class SeleniumYTMusic(command_module):
     def __init__(self, driver=None, window_handle = None):
+        
+
+
         if driver is None:
             co = ChromeOptions()
             co.add_experimental_option("debuggerAddress", "localhost:8989")

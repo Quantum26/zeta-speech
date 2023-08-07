@@ -18,10 +18,16 @@ class module(command_module):
     def __init__(self):
         commands = {"open" : self.mopen,
                     "list apps" : self.list_apps}
+        flags = {"start" : False}
         self.apps = give_appnames()
-        super().__init__("Open Module", commands)
+        super().__init__("Open Module", commands, flags=flags)
     
     def open_site(self, phrase_arr, vd):
+        # check if chrome is open
+        if self.flags["start"] and os.path.isfile(os.path.join(path_to_secrets,"chrome_profile.lnk")):
+            os.startfile(os.path.join(path_to_secrets,"chrome_profile.lnk"))
+            self.flags["start"] = False
+
         dest = None
         phrase = ' '.join(phrase_arr[1:])
 
