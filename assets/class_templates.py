@@ -6,7 +6,7 @@ import os
 path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(__file__)),'secrets')
 
 class command_module():
-    def __init__(self, name : str, commands = {}, flags = {}, objs = {}, exit_funcs={}):
+    def __init__(self, name : str, commands = {}, flags = {}, objs = {}, exit_funcs=[]):
         self.name = name
         self.commands = commands
         self.flags = flags
@@ -39,16 +39,15 @@ class command_module():
     def exit(self):
         exit_msg = "Exited " + self.name
         err = False
-        for (key,value) in self.exit_funcs.items():
-            if key in self.commands.keys():
-                try:
-                    value()
-                except Exception as e:
-                    if not err:
-                        exit_msg += " with Exceptions: " + str(e)
-                        err = True
-                    else: 
-                        exit_msg += ", " + str(e)
+        for func in self.exit_funcs:
+            try:
+                func()
+            except Exception as e:
+                if not err:
+                    exit_msg += " with Exceptions: " + str(e)
+                    err = True
+                else: 
+                    exit_msg += ", " + str(e)
         return exit_msg
 
 

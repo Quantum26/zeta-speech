@@ -13,20 +13,37 @@ path_to_secrets = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(_
 
 class SeleniumYTMusic(command_module):
     def __init__(self, driver=None, window_handle = None):
-        
-
-
         if driver is None:
             co = ChromeOptions()
             co.add_experimental_option("debuggerAddress", "localhost:8989")
             self.driver = webdriver.Chrome(options = co)
         else:
             self.driver = driver
+
         if window_handle is None:
             self.window_handle = self.driver.window_handles[-1]
         else:
             self.window_handle = window_handle
+
+        self.driver.switch_to.window(self.window_handle)
+
         self.paused = True
+        commands = {
+            "play next" : lambda st, vd: self.add_to_queue(st[2:]),
+            "play" : lambda st, vd: self.play(st[1:]),
+            "pause" : lambda st, vd: self.pause(),
+            "unpause" : lambda st, vd: self.unpause(),
+            "back" : lambda st, vd: self.prev(),
+            "previous" : lambda st, vd: self.prev(),
+            "skip" : lambda st, vd: self.next(),
+            "next" : lambda st, vd: self.next(),
+            "add" : lambda st, vd: self.add_to_queue(st[1:]),
+            "toggle" : lambda st, vd: self.toggle_music_page(),
+            "repeat" : lambda st, vd: self.toggle_repeat(),
+            "search" : lambda st, vd: self.search(st[1:]),
+            "shuffle" : lambda st, vd: self.toggle_shuffle()
+        }
+        super().__init__("YTMusic Module", commands, exit_funcs=[self.stop])
 
     def __enter__(self, driver=None):
         self.__init__(driver=driver)
@@ -70,9 +87,10 @@ class SeleniumYTMusic(command_module):
         search_bar.send_keys('\n')
 
     def add_to_queue(self, search_terms):
-        print("Adding '" + " ".join(search_terms) + "' to play next!")
-        self.search(search_terms)
-        time.sleep(5)
+        if len(search_terms) > 0:
+            print("Adding '" + " ".join(search_terms) + "' to play next!")
+            self.search(search_terms)
+            time.sleep(5)
         elem = WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.ID, "button-shape")))
         self.driver.find_element(by=By.ID, value="button-shape").click()

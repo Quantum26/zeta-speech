@@ -16,13 +16,14 @@ path = path.replace('\\', '/') + " %s"
 
 class module(command_module):
     def __init__(self):
-        commands = {"open" : self.mopen,
+        commands = {"open" : self.multi_open,
                     "list apps" : self.list_apps}
         flags = {"start" : False}
         self.apps = give_appnames()
         super().__init__("Open Module", commands, flags=flags)
     
-    def open_site(self, phrase_arr, vd):
+    def open_site(self, phrase_arr, vd, recognized_msg=True):
+
         # check if chrome is open
         if self.flags["start"] and os.path.isfile(os.path.join(path_to_secrets,"chrome_profile.lnk")):
             os.startfile(os.path.join(path_to_secrets,"chrome_profile.lnk"))
@@ -43,7 +44,8 @@ class module(command_module):
         try:
             dest = data[phrase]
         except KeyError as e:
-            print("Website not recognized.\n" + str(e))
+            if recognized_msg:
+                print("Website not recognized.\n" + str(e))
             return False
         try:
             vd.tts("Opening " + phrase)
@@ -64,9 +66,13 @@ class module(command_module):
     def list_apps(self, phrase_arr, vd):
         print(', '.join(list(self.apps)))
     
-    def mopen(self, phrase_arr, vd):
-        if not self.open_app(phrase_arr, vd):
-            print(' '.join(pharse_arr[1:]) + " is not recognized as an app, checking if registered as website.")
-            return self.open_site(phrase_arr, vd)
+    def multi_open(self, phrase_arr, vd):
+        for name in ' '.join(phrase_arr[1:]).split('and'):
+            sub_arr = ["open"]
+            sub_arr.extend(name.split())
+            if len(sub_arr) == 1:
+                continue
+            if not self.open_app(sub_arr, vd) and not self.open_site(sub_arr, vd, False):
+                print(' '.join(sub_arr[1:]) + " is not recognized as an app or website.")
         return True
             
